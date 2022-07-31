@@ -25,6 +25,7 @@ int totalBytesInMessage = 0; // used for sends and receives
  */
 int current_state = 0; 
 
+
 // recordMessage checks for user inputs every 100ms
 // If a button is pressed, it is lit up, and writes 
 // to a unique bit of the output.
@@ -96,6 +97,9 @@ void loop() {
         }
         message[i] = recordMessage();
       }
+      for (int i = 0; i < num_buttons; i++) {
+        analogWrite(output_pins[i], 0);
+      }
       Serial.write(totalBytesInMessage);
       current_state = 2;
       break;
@@ -103,17 +107,25 @@ void loop() {
       Serial.write(0xFF);
       Serial.write(message, totalBytesInMessage);
       // only one message can be sent at a time. To avoid multiple sends,
-      // sender waits until receiver plays the sent message
+      // sender waits until receiver plays the sent message. Flash light
+      // until message is recieved
       if (Serial.available() > 0) {
         Serial.read();
         current_state = 0;
+      } else if (flash) {
+        digitalWrite(message_available, HIGH);
+      } else {
+        digitalWrite(message_available, LOW);
       }
+      flash = !flash;
+      delay(500);
       break;
     case 3: // message receieved -- flash receive light until ack'd
       // stay in receive state until receiver plays message
       if (digitalRead(message_play)) {
         // turn off light once receiver acknowledges message
         digitalWrite(message_available, LOW);
+        Serial.write(0xA0);
         current_state = 4;
         break;
       } else if (flash) {
