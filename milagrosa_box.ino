@@ -99,6 +99,7 @@ void loop() {
       for (int i = 0; i < totalBytesInMessage; i++) {
         playMessage(Serial.read());
       }
+      current_state = 0;
       break;
   }
 }
