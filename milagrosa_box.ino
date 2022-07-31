@@ -10,7 +10,10 @@ int output_pins[5] = {3, 5, 6, 9, 10}; // lights (PWM)
 int brightnesses[5] = {0, 0, 0, 0, 0}; // light states -- we will need to update this to hold each colors' brightness
 bool flash = true;
 
-byte message[100]; // byte stream used to hold the current message for sends
+// a message will be a sequence of 100 bytes where each byte
+// corresponds to a 100ms
+int max_message_length = 100;
+byte message[max_message_length]; // byte stream used to hold the current message for sends
 int totalBytesInMessage = 0; // used for sends and receives
 
 /*
@@ -88,7 +91,7 @@ void loop() {
       }
       break;
     case 1: // record and send message
-      for (int i = 0; i < 100; ++i) {
+      for (int i = 0; i < max_message_length; ++i) {
         totalBytesInMessage = i + 1;
         // check for message completion
         if (digitalRead(message_play)) {
