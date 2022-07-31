@@ -3,19 +3,27 @@
 // 7/30/22
 
 int num_buttons = 5;
-int message_play = 11; // assuming pin 13 is available -- used for message record/send/play
-int message_available = 13; // assuming 14 is available
-int message_receive = 15; // an output for the light when a message comes in
+int message_play = 11; // assuming pin 11 is available -- used for message record/send/play
+int message_available = 13; // assuming 13 is available -- lights up when a message is ready to be played
 int input_pins[5] = {2, 4, 7, 8, 12}; // switches
 int output_pins[5] = {3, 5, 6, 9, 10}; // lights (PWM)
-int brightnesses[5] = {0, 0, 0, 0, 0}; // light states
+int brightnesses[5] = {0, 0, 0, 0, 0}; // light states -- we will need to update this to hold each colors' brightness
+bool flash = true;
 
-byte message[100];
+byte message[100]; // byte stream used to hold the current message for sends
+int totalBytesInMessage = 0; // used for sends and receives
 
-int max_brightness = 100; 
-int current_state = 0;
-
-int totalBytesInMessage = 0;
+/*
+ * States:
+ *  0 = Base state, no messages are being sent or received
+ *  1 = Record message of max 10 seconds
+ *  2 = Send message over from one device to the other
+ *  3 = Receiver device lights up, indicating available message
+ *  4 = Receiver device plays message
+ *  5 = State 5 is a sort of lock state that will allow us to only have one message
+ *  be set at a time to avoid odd edge cases
+ */
+int current_state = 0; 
 
 byte recordMessage() {
   byte output;
@@ -51,14 +59,15 @@ void loop() {
     case 0: // base state
       // check for incoming message
       if (Serial.available() > 0) {
-        totalBytesInMessage = Serial.read();
+        Serial.read();
         // turn on light, indicating message has been received
         digitalWrite(message_available, HIGH);
-        current_state = 3;
+        current_state = 5;
         break;
       }
       // check to record message
       if (digitalRead(message_play)) {
+        Serial.write(0x80);
         current_state = 1;
       }
       break;
@@ -84,13 +93,20 @@ void loop() {
         current_state = 0;
       }
       break;
-    case 3: // message receieved
+    case 3: // message receieved -- flash receive light until ack'd
       // stay in receive state until receiver plays message
       if (digitalRead(message_play)) {
         // turn off light once receiver acknowledges message
         digitalWrite(message_available, LOW);
         current_state = 4;
+        break;
+      } else if (flash) {
+        digitalWrite(message_available, HIGH);
+      } else {
+        digitalWrite(message_available, LOW);
       }
+      flash = !flash;
+      delay(500);
       break;
     case 4: // play message
       while(Serial.read() != 0xFF){
@@ -100,6 +116,12 @@ void loop() {
         playMessage(Serial.read());
       }
       current_state = 0;
+      break;
+    case 5: // invariant state -- only one device can send a messge at a time
+      if (Serial.available() > 0) {
+        totalBytesInMessage = Serial.read();
+        current_state = 3;
+      }
       break;
   }
 }
