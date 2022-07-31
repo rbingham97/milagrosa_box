@@ -25,7 +25,6 @@ int totalBytesInMessage = 0; // used for sends and receives
  */
 int current_state = 0; 
 
-
 // recordMessage checks for user inputs every 100ms
 // If a button is pressed, it is lit up, and writes 
 // to a unique bit of the output.
