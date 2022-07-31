@@ -105,6 +105,7 @@ void loop() {
       // only one message can be sent at a time. To avoid multiple sends,
       // sender waits until receiver plays the sent message
       if (Serial.available() > 0) {
+        Serial.read();
         current_state = 0;
       }
       break;
