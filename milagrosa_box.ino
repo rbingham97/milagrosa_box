@@ -25,15 +25,31 @@ int totalBytesInMessage = 0; // used for sends and receives
  */
 int current_state = 0; 
 
+
+// recordMessage checks for user inputs every 100ms
+// If a button is pressed, it is lit up, and writes 
+// to a unique bit of the output.
+// Example: Button 1 and button 4 of buttons 0-4 are 
+// pressed; expected output == 0x00010010
 byte recordMessage() {
-  byte output;
+  byte output = 0x00;
+  int buttonInput;
+  int brightness;
   for (int i = 0; i < num_buttons; i++) {
-    output |= digitalRead(input_pins[i]) << i;
+    buttonInput = digitalRead(input_pins[i]);
+    brightness = buttonInput ? brightnesses[i] : 0;
+    analogWrite(output_pins[i], brightness);
+    output |= buttonInput << i;
   }
   delay(100);
   return output;
 }
 
+// playMessage takes in a byte that was read from
+// serial and lights up the corresponding light for
+// 100ms. 
+// Example: input 0x00010010 will light up Button 1 
+// and button 4 of buttons 0-4
 void playMessage(byte lightSequence) {
   int brightness;
   for (int i = 0; i < num_buttons; i++) {
@@ -60,7 +76,7 @@ void loop() {
       // check for incoming message
       if (Serial.available() > 0) {
         Serial.read();
-        // turn on light, indicating message has been received
+        // turn on light, indicating message is being transmitted over
         digitalWrite(message_available, HIGH);
         current_state = 5;
         break;
@@ -73,7 +89,7 @@ void loop() {
       break;
     case 1: // record and send message
       for (int i = 0; i < 100; ++i) {
-        totalBytesInMessage = i;
+        totalBytesInMessage = i + 1;
         // check for message completion
         if (digitalRead(message_play)) {
           current_state = 2;
