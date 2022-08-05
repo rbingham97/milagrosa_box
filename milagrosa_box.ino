@@ -3,17 +3,18 @@
 // 7/30/22
 
 int num_buttons = 5;
-int message_play = 11; // assuming pin 11 is available -- used for message record/send/play
-int message_available = 13; // assuming 13 is available -- lights up when a message is ready to be played
+int message_play = A0; // analog 0 -- used for message record/send/play
+int message_available = 11; // pin 11 for pwm -- lights up when a message is ready to be played
 int input_pins[5] = {2, 4, 7, 8, 12}; // switches
 int output_pins[5] = {3, 5, 6, 9, 10}; // lights (PWM)
-int brightnesses[5] = {0, 0, 0, 0, 0}; // light states -- we will need to update this to hold each colors' brightness
+int brightnesses[5] = {80, 80, 80, 100, 80}; // light states -- we will need to update this to hold each colors' brightness
 bool flash = true;
 
 // a message will be a sequence of 100 bytes where each byte
 // corresponds to a 100ms
-int max_message_length = 100;
+const int max_message_length = 100;
 byte message[max_message_length]; // byte stream used to hold the current message for sends
+byte incoming[max_message_length]; // stream for incoming message
 int totalBytesInMessage = 0; // used for sends and receives
 
 /*
@@ -43,6 +44,8 @@ byte recordMessage() {
     analogWrite(output_pins[i], brightness);
     output |= buttonInput << i;
   }
+
+  
   delay(100);
   return output;
 }
@@ -85,7 +88,7 @@ void loop() {
       }
       // check to record message
       if (digitalRead(message_play)) {
-        Serial.write(0x80);
+        Serial.write(0x80); // what does this signify?
         current_state = 1;
       }
       break;
@@ -93,10 +96,11 @@ void loop() {
       for (int i = 0; i < max_message_length; ++i) {
         totalBytesInMessage = i + 1;
         // check for message completion
-        if (digitalRead(message_play)) {
-          current_state = 2;
-          break;
-        }
+                  // this check needs debouncing
+        //if (digitalRead(message_play)) {
+        //  current_state = 2;
+        //  break;
+        //}
         message[i] = recordMessage();
       }
       for (int i = 0; i < num_buttons; i++) {
